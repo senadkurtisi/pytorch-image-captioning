@@ -11,7 +11,7 @@ def load_descriptions(data):
         image2desc (dict): Mapping from image id to all
             captions of that image that occured in the dataset
     """
-	image2desc = dict()
+	image2caption = dict()
 	for sample in data.split('\n'):
 		tokens = sample.split()
 		if len(sample) < 2:
@@ -24,9 +24,9 @@ def load_descriptions(data):
 		# Recreate the description
 		image_caption = " ".join(image_caption)
 
-		if image_id not in image2desc:
-			image2desc[image_id] = list()
+		if image_id not in image2caption:
+			image2caption[image_id] = list()
 		# Save the description
-		image2desc[image_id].append(image_caption)
+		image2caption[image_id].append(image_caption)
 
-	return image2desc
+	return image2caption
