@@ -1,6 +1,32 @@
 import string
 
 
+def create_vocab(image2caption):
+    """Creates a vocabulary of tokens in the dataset corpus.
+    
+    Arguments:
+        image2caption (dict): Mapping from image id to all
+            captions of that image that occured in the dataset
+    Returns:
+        word2idx (dict): unique integer - word mapping for all
+            unique tokens found in dataset captions
+    """
+    # Vocabulary dictionary
+    word2idx = {"<pad>": 0, "<start>": 1, "<end>": 2}
+    # All possible words in the token
+    words = set()
+    # Extract all tokens from the image captions
+    for captions in image2caption.values():
+        current_words = [word for caption in captions for word in caption]
+        words.update(current_words)
+
+    starting_len = len(word2idx)
+    words = list(words)
+    word2idx = {(idx + starting_len): word for idx, word in enumerate(words)}
+
+    return word2idx
+
+
 def clean_captions(image2caption):
     """Cleans the loaded image captions.
     
@@ -53,7 +79,7 @@ def load_captions(data):
 		# First token is image id, remaining ones correspond to the caption
         image_id, image_caption = tokens[0], tokens[1:]
 		# Extract only the filename from the image id
-        image_id = image_id.split('.')[0]
+        image_id = image_id.split(".")[0]
 		# Recreate the description
         image_caption = " ".join(image_caption)
         
