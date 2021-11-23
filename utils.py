@@ -1,4 +1,46 @@
+import os
 import string
+
+import numpy as np
+
+
+def extract_embeddings(config):
+    """Extracts GloVe word embeddings for words in vocab.
+
+    Arguments:
+        config (object): Contains dataset & pipeline configuration info
+    """
+    embeddings_config = config["embeddings"]
+    save_path_emb = embeddings_config["path"]
+    embedding_dim = embeddings_config["size"]
+
+    # Used for finding the embedding vector for each token
+    vectors = []
+
+    embedding_file_name = "glove.6B.{}d.txt".format(embedding_dim)
+    embeddings_path = os.path.join(config["glove_dir"], embedding_file_name)
+    with open(embeddings_path, "rb") as f:
+        for line in f:
+            line = line.decode().split()
+            # Extract and pre-process the token
+            word = line[0]
+            word = word.strip().lower()
+            # Remember the embedding vector for the word
+            embedding_vec = np.array(line[1:], dtype="float")
+            vectors += [embedding_vec]
+
+    vectors = np.array(vectors)
+    # Embedding vector for tokens used for padding the input sequence
+    pad_embedding = np.zeros((embedding_dim,))
+    # Embedding vector for tokens not present in the training set
+    unk_embedding = vectors.mean(axis=0)
+
+    vectors = np.vstack([unk_embedding, pad_embedding, vectors])
+    # Save extracted embeddings
+    np.savetxt(save_path_emb, vectors)
+
+    print("\nExtracted GloVe embeddings for all tokens in the training set.") 
+    print("Embedding vectors size:", embedding_dim)
 
 
 def create_vocab(image2caption):
