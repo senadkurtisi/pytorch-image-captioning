@@ -1,5 +1,5 @@
 
-def load_descriptions(data):
+def load_captions(data):
     """Processes the loaded image captions.
 
     Image captions are saved in the following format:
