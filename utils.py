@@ -17,7 +17,7 @@ def clean_captions(image2caption):
     punct_table = str.maketrans("", "", string.punctuation)
     for image_id, captions in image2caption.items():
         for i in range(len(captions)):
-            caption = caption[i]
+            caption = captions[i]
             # Extract separate tokens
             caption = caption.split()
             # Make tokens lowercase
@@ -46,7 +46,7 @@ def load_captions(data):
     """
     image2caption = dict()
     for sample in data.split('\n'):
-        tokens = sample.split()
+        tokens = sample.split(",")
         if len(sample) < 2:
             # Image has no description
             continue
@@ -62,4 +62,4 @@ def load_captions(data):
 		# Save the description
         image2caption[image_id].append(image_caption)
 
-	return image2caption
+    return image2caption
