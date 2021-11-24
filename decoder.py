@@ -4,6 +4,31 @@ import torch.nn as nn
 from torch.nn import TransformerDecoderLayer, TransformerDecoder
 
 
+class PositionalEncodings(nn.Module):
+    """Attention is All You Need positional encoding layer"""
+
+    def __init__(self, seq_len, d_model, p_dropout):
+        """Initializes the layer."""
+        super(PositionalEncodings, self).__init__()
+        token_positions = torch.arange(start=0, end=seq_len).view(-1, 1)
+        dim_positions = torch.arange(start=0, end=d_model).view(1, -1)
+        angles = token_positions / (10000 ** ((2 * dim_positions) / d_model))
+
+        encodings = torch.zeros(1, seq_len, d_model)
+        encodings[0, :, ::2] = torch.cos(angles[:, ::2])
+        encodings[0, :, 1::2] = torch.sin(angles[:, 1::2])
+        encodings.requires_grad = False
+        self.register_buffer("positional_encodings", encodings)
+
+        self.dropout = nn.Dropout(p_dropout)
+
+    def forward(self, x):
+        """Performs forward pass of the module."""
+        x = x + self.positional_encodings
+        x = self.dropout(x)
+        return x
+
+
 class CaptionDecoder(nn.Module):
     """Decoder for image captions.
 
@@ -33,6 +58,7 @@ class CaptionDecoder(nn.Module):
 
         self.entry_mapping = nn.Linear(embedding_dim, d_model)
 
+        self.positional_encodings = PositionalEncodings(config["max_len"], d_model, dropout)
         transformer_decoder_layer = TransformerDecoderLayer(
             d_model=d_model,
             nhead=attention_heads,
@@ -46,6 +72,8 @@ class CaptionDecoder(nn.Module):
         """Performs forward pass of the module."""
         x = self.embedding_layer(x)
         x = self.entry_mapping(x)
+
+        x = self.positional_encodings(x)
         # Get output from the decoder
         x = x.permute(1, 0, 2)
         x = self.decoder(tgt=x, memory=image_features, tgt_key_padding_mask=padd_mask)
