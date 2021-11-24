@@ -46,7 +46,12 @@ class Flickr8KDataset(Dataset):
         self._max_len = config["max_len"]
         self._dataset_size = len(self.data)
 
+        # Transformation to apply to each image
         self._image_transform = self._construct_image_transform(config["image_size"])
+        # All images that appear in the dataset
+        self._image_names = list(set([line.split()[0].split("#")[0] for line in self._data]))
+        # Preprocessed images
+        self._images = self._load_and_process_images(config["image_dir"], self._image_names)
 
     def _construct_image_transform(self, image_size):
         """Constructs the image preprocessing transform object.
@@ -68,7 +73,7 @@ class Flickr8KDataset(Dataset):
 
         return preprocessing
 
-    def load_and_process_images(self, image_dir, image_names):
+    def _load_and_process_images(self, image_dir, image_names):
         """Loades dataset images and adapts them for the CNN.
 
         Arguments:
