@@ -39,6 +39,8 @@ class Flickr8KDataset(Dataset):
 
         self._start_idx = config["START_idx"]
         self._end_idx = config["END_idx"]
+        self._START_token = config["START_token"]
+        self._END_token = config["END_token"]
 
         self._PAD_token = config["PAD_token"]
         self._PAD_label = config["PAD_label"]
@@ -52,6 +54,9 @@ class Flickr8KDataset(Dataset):
         self._image_names = list(set([line.split()[0].split("#")[0] for line in self._data]))
         # Preprocessed images
         self._images = self._load_and_process_images(config["image_dir"], self._image_names)
+
+        # Create artificial samples
+        self._data = self._create_artificial_samples()
 
     def _construct_image_transform(self, image_size):
         """Constructs the image preprocessing transform object.
@@ -83,12 +88,50 @@ class Flickr8KDataset(Dataset):
             images_processed (list of torch.Tensor): "ImageNet-adapted" versions
                 of loaded images
         """
+        # TODO: Implement dict mapping -> image_id: torch tensor
         image_paths = [os.path.join(image_dir, fname) for fname in image_names]
         # Load images
         images_raw = [Image.open(path) for path in image_paths]
         # Adapt the images to CNN trained on ImageNet { PIL -> Tensor }
         images_processed = [self._image_transform(img) for img in images_raw]
         return images_processed
+
+    def _create_artificial_samples(self):
+        """Augments the dataset with artificial samples.
+
+        Example:
+            - original sample: image_0 Two dogs playing outside
+            - Generated samples:
+                1. image_0 Two
+                2. image_0 Two dogs
+                3. image_0 Two dogs playing
+                4. image_0 Two dogs playing outside
+
+        Returns:
+            augmented_data (list): Augmented dataset
+                Each element is a tuple (image_name, input_words, label)
+                - input_words (list of str): Words predicted until now
+                - label (str): Correct prediction for the next word
+        """
+        augmented_data = []
+        for line in self._data:
+            line_split = line.split()
+            image_name, caption = line_split[0], line_split[1:]
+            # Clean image name entry
+            image_name = image_name.split("#")[0]
+
+            # Add tokens for start and end of the sequence
+            # Start token is necessary for predicting the first word of the caption
+            caption_words = [self._START_token] + caption.split() + [self._END_token]
+            num_words = len(caption_words)
+            for pos in range(1, num_words):
+                # Input for the neural network: Words predicted until now
+                new_input = caption_words[:pos]
+                # Correct prediction for the next word
+                label = caption_words[pos]
+                augmented_data += (image_name, new_input, label)
+
+        return augmented_data
 
     def __len__(self):
         return self._dataset_size
