@@ -1,7 +1,9 @@
+import os
 import json
 from collections import defaultdict
 
 import torch
+import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 
 
@@ -9,7 +11,7 @@ class Flickr8KDataset(Dataset):
     """"Represents dataloader for the Flickr8k dataset.
 
     Data is stored in following format:
-        image_name: associated caption.
+        image_name: associated caption
     Each image has maximum 5 different captions.
     """
 
@@ -42,3 +44,25 @@ class Flickr8KDataset(Dataset):
 
         self._max_len = config["max_len"]
         self._dataset_size = len(self.data)
+
+        self._image_transform = self._construct_image_transform(config["image_size"])
+
+    def _construct_image_transform(self, image_size):
+        """Constructs the image preprocessing transform object.
+
+        Arguments:
+            image_size (int): Size of the result image
+        """
+        # ImageNet normalization statistics
+        normalize = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        )
+        preprocessing = transforms.Compose([
+            transforms.Scale(256),
+            transforms.CenterCrop(image_size),
+            transforms.ToTensor(),
+            normalize,
+        ])
+
+        return preprocessing
