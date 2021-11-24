@@ -16,6 +16,7 @@ if __name__ == "__main__":
 
     image2caption = load_captions(data)
     image2caption = clean_captions(image2caption)
+    # Create and save dataset corpus vocabulary
     create_vocab(image2caption, config["word2idx_path"])
     # Extract GloVe embeddings for tokens present in the training set vocab
     extract_embeddings(config)
