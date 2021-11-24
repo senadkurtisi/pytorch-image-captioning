@@ -5,6 +5,45 @@ import string
 import numpy as np
 
 
+def save_captions(image2caption, subset_imgs, save_path):
+    """Saves captions for images which belong to subset to a file.
+
+    Arguments:
+        image2caption (dict): Mapping from image id to all
+            captions of that image that occured in the dataset
+        subset_imgs (list of str): List of image names which belong to subset
+        save_path (str): Path to which to save extracted captions
+    """
+    captions = []
+    for image_name in subset_imgs:
+        image_id = os.path.splitext(image_name)[0]
+        if image_id in image2caption:
+            [captions.append("{} {}\n".format(image_name, caption)) for caption in image2caption[image_id]]
+
+    # Save extracted captions
+    with open(save_path, "w") as f:
+        f.writelines(captions)
+
+
+def split_dataset(image2caption, split_images_paths, save_paths):
+    """Perfoms splitting of the dataset.
+
+    Arguments:
+        image2caption (dict): Mapping from image id to all
+            captions of that image that occured in the dataset
+        split_images_paths (list of str): Contains paths of files which contain
+            names of images which belong to each subset in the split
+        split_images_paths (list of str): Contains paths to which to save
+            captions extracted for each image in specified subsets
+    """
+    for load_path, save_path in zip(split_images_paths, save_paths):
+        # Load names of images which belong to current subset
+        with open(load_path, "r") as f:
+            subset_imgs = [fname.replace("\n", "") for fname in f.readlines()]
+        # Save processed captions for those images in a separate file
+        save_captions(image2caption, subset_imgs, save_path)
+
+
 def extract_embeddings(config):
     """Extracts GloVe word embeddings for words in vocab.
 
@@ -118,7 +157,7 @@ def load_captions(data):
     """
     image2caption = dict()
     for sample in data.split("\n"):
-        tokens = sample.split(",")
+        tokens = sample.split()
         if len(sample) < 2:
             # Image has no description
             continue
