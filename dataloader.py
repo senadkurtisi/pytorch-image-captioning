@@ -85,15 +85,17 @@ class Flickr8KDataset(Dataset):
             image_dir (str): Directory where images are stored
             image_names (list of str): Names of image files in the dataset
         Returns:
-            images_processed (list of torch.Tensor): "ImageNet-adapted" versions
-                of loaded images
+            images_processed (dict): "ImageNet-adapted" versions of loaded images
+                key: image name, dict: torch.Tensor of loaded and processed image
         """
         # TODO: Implement dict mapping -> image_id: torch tensor
         image_paths = [os.path.join(image_dir, fname) for fname in image_names]
         # Load images
         images_raw = [Image.open(path) for path in image_paths]
         # Adapt the images to CNN trained on ImageNet { PIL -> Tensor }
-        images_processed = [self._image_transform(img) for img in images_raw]
+        image_tensors = [self._image_transform(img) for img in images_raw]
+
+        images_processed = {img_name: img_tensor for img_name, img_tensor in zip(image_names, image_tensors)}
         return images_processed
 
     def _create_artificial_samples(self):
