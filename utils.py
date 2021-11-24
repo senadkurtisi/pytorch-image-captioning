@@ -102,7 +102,7 @@ def create_vocab(image2caption, save_path):
 
     starting_len = len(word2idx)
     words = list(words)
-    word2idx.update({(idx + starting_len): word for idx, word in enumerate(words)})
+    word2idx.update({word: (idx + starting_len) for idx, word in enumerate(words)})
 
     # Save vocabulary to a file
     with open(save_path, "w", encoding="utf8") as f:
