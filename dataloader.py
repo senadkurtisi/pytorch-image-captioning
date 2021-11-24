@@ -89,3 +89,9 @@ class Flickr8KDataset(Dataset):
         # Adapt the images to CNN trained on ImageNet { PIL -> Tensor }
         images_processed = [self._image_transform(img) for img in images_raw]
         return images_processed
+
+    def __len__(self):
+        return self._dataset_size
+
+    def __getitem__(self, index):
+        pass
