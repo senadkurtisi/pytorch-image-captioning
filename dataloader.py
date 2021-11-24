@@ -5,6 +5,7 @@ from collections import defaultdict
 import torch
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
+from PIL import Image
 
 
 class Flickr8KDataset(Dataset):
@@ -66,3 +67,20 @@ class Flickr8KDataset(Dataset):
         ])
 
         return preprocessing
+
+    def load_and_process_images(self, image_dir, image_names):
+        """Loades dataset images and adapts them for the CNN.
+
+        Arguments:
+            image_dir (str): Directory where images are stored
+            image_names (list of str): Names of image files in the dataset
+        Returns:
+            images_processed (list of torch.Tensor): "ImageNet-adapted" versions
+                of loaded images
+        """
+        image_paths = [os.path.join(image_dir, fname) for fname in image_names]
+        # Load images
+        images_raw = [Image.open(path) for path in image_paths]
+        # Adapt the images to CNN trained on ImageNet { PIL -> Tensor }
+        images_processed = [self._image_transform(img) for img in images_raw]
+        return images_processed
