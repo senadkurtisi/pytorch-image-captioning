@@ -31,32 +31,25 @@ class Flickr8KDataset(Dataset):
             self._word2idx = json.load(f)
         self._idx2word = {str(idx): word for word, idx in self._word2idx.items()}
 
-        # Set the default value for the OOV tokens
-        self._word2idx = defaultdict(
-            lambda: self._word2idx[config["OOV_token"]],
-            self._word2idx
-        )
-
         self._start_idx = config["START_idx"]
         self._end_idx = config["END_idx"]
         self._START_token = config["START_token"]
         self._END_token = config["END_token"]
-
         self._PAD_token = config["PAD_token"]
-        self._PAD_label = config["PAD_label"]
 
         self._max_len = config["max_len"]
-        self._dataset_size = len(self.data)
 
         # Transformation to apply to each image
-        self._image_transform = self._construct_image_transform(config["image_size"])
+        self._image_specs = config["image_specs"]
+        self._image_transform = self._construct_image_transform(self._image_specs["image_size"])
         # All images that appear in the dataset
         self._image_names = list(set([line.split()[0].split("#")[0] for line in self._data]))
         # Preprocessed images
-        self._images = self._load_and_process_images(config["image_dir"], self._image_names)
+        self._images = self._load_and_process_images(self._image_specs["image_dir"], self._image_names)
 
         # Create artificial samples
         self._data = self._create_artificial_samples()
+        self._dataset_size = len(self._data)
 
     def _construct_image_transform(self, image_size):
         """Constructs the image preprocessing transform object.
@@ -88,7 +81,6 @@ class Flickr8KDataset(Dataset):
             images_processed (dict): "ImageNet-adapted" versions of loaded images
                 key: image name, dict: torch.Tensor of loaded and processed image
         """
-        # TODO: Implement dict mapping -> image_id: torch tensor
         image_paths = [os.path.join(image_dir, fname) for fname in image_names]
         # Load images
         images_raw = [Image.open(path) for path in image_paths]
@@ -124,14 +116,14 @@ class Flickr8KDataset(Dataset):
 
             # Add tokens for start and end of the sequence
             # Start token is necessary for predicting the first word of the caption
-            caption_words = [self._START_token] + caption.split() + [self._END_token]
+            caption_words = [self._START_token] + caption + [self._END_token]
             num_words = len(caption_words)
             for pos in range(1, num_words):
                 # Input for the neural network: Words predicted until now
                 new_input = caption_words[:pos]
                 # Correct prediction for the next word
                 label = caption_words[pos]
-                augmented_data += (image_name, new_input, label)
+                augmented_data += [(image_name, new_input, label)]
 
         return augmented_data
 
@@ -139,4 +131,33 @@ class Flickr8KDataset(Dataset):
         return self._dataset_size
 
     def __getitem__(self, index):
-        pass
+        # Extract the caption data
+        image_id, input_tokens, label = self._data[index]
+
+        # Extract image tensor
+        image_tensor = self._images[image_id]
+
+        # Number of words in the input token
+        sample_size = len(input_tokens)
+
+        # Pad the token and label sequences
+        input_tokens = input_tokens[:self._max_len]
+        padding_size = self._max_len - sample_size
+        if padding_size > 0:
+            input_tokens += [self._PAD_token for _ in range(padding_size)]
+
+        # Apply the vocabulary mapping to the input tokens
+        input_tokens = [token.strip().lower() for token in input_tokens]
+        input_tokens = [self._word2idx[token] for token in input_tokens]
+        input_tokens = torch.Tensor(input_tokens).long()
+
+        # Next word label
+        label = self._word2idx[label]
+        label = torch.Tensor([label]).long()
+
+        # Define the padding mask
+        padding_mask = torch.ones([self._max_len, ])
+        padding_mask[:sample_size] = 0.0
+
+        return image_tensor, input_tokens, label, padding_mask
+
