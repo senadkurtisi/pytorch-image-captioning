@@ -31,7 +31,7 @@ def train(config, writer, device):
     }
 
     # Create dataloaders
-    train_set = Flickr8KDataset(config, config["dataset_path"]["train"])
+    train_set = Flickr8KDataset(config, config["split_save"]["train"])
     train_loader = DataLoader(train_set, **train_hyperparams)
 
     # Download pretrained CNN encoder
@@ -58,3 +58,21 @@ def train(config, writer, device):
         lr=train_config["learning_rate"],
         weight_decay=train_config["l2_penalty"]
     )
+
+    train_step = 0
+    for epoch in range(train_config["num_of_epochs"]):
+        print("Epoch:", epoch)
+        decoder.train()
+
+        for x_img, x_words, y, padding_mask, tgt_pos in train_loader:
+            x_img, x_words = x_img.to(device), x_words.to(device)
+            y, tgt_pos = y.to(device), tgt_pos.to(device)
+            padding_mask = padding_mask.to(device)
+
+            optimizer.zero_grad()
+
+            # Extract image features
+            img_features = encoder(x_img)
+            img_features = img_features.view(img_features.size(0), img_features.size(1), -1)
+            img_features = img_features.permute(0, 2, 1)
+
