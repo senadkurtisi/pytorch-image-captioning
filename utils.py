@@ -50,6 +50,7 @@ def extract_embeddings(config):
     Arguments:
         config (object): Contains dataset & pipeline configuration info
     """
+    np.random.seed(config["seed"])
     embeddings_config = config["embeddings"]
     save_path_emb = embeddings_config["path"]
     embedding_dim = embeddings_config["size"]
@@ -72,10 +73,18 @@ def extract_embeddings(config):
     vectors = np.array(vectors)
     # Embedding vector for tokens used for padding the input sequence
     pad_embedding = np.zeros((embedding_dim,))
-    # Embedding vector for tokens not present in the training set
-    unk_embedding = vectors.mean(axis=0)
+    # Embedding vector for start of the sequence
+    sos_embedding = np.random.normal(size=(embedding_dim,))
+    # Embedding vector for end of the sequence
+    eos_embedding = np.random.normal(size=(embedding_dim,))
 
-    vectors = np.vstack([unk_embedding, pad_embedding, vectors])
+    # Sanity check: we can't have duplicate embeddings
+    assert not np.allclose(sos_embedding, eos_embedding), "SOS and EOS embeddings are too close!"
+    for emb_vec in vectors:
+        assert not np.allclose(sos_embedding, emb_vec), "SOS embedding is too close to other embedding!"
+        assert not np.allclose(eos_embedding, emb_vec), "EOS embedding is too close to other embedding!"
+
+    vectors = np.vstack([pad_embedding, sos_embedding, eos_embedding, vectors])
     # Save extracted embeddings
     np.savetxt(save_path_emb, vectors)
 
