@@ -1,8 +1,10 @@
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+import torchvision.models as models
 
 from dataloader import Flickr8KDataset
+from decoder import CaptionDecoder
 
 
 def train(config, writer, device):
@@ -32,3 +34,13 @@ def train(config, writer, device):
     train_set = Flickr8KDataset(config, config["dataset_path"]["train"])
     train_loader = DataLoader(train_set, **train_hyperparams)
 
+    # Download pretrained CNN encoder
+    encoder = models.resnet50(pretrained=True)
+    # Extract only the convolutional backbone of the model
+    encoder = torch.nn.Sequential(*(list(encoder.children())[:-2]))
+    encoder = encoder.to(device)
+    encoder.eval()
+
+    # Instantiate the decoder
+    decoder = CaptionDecoder(config)
+    decoder = decoder.to(device)
