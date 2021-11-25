@@ -67,6 +67,7 @@ class CaptionDecoder(nn.Module):
 
         embedding_dim = config["embeddings"]["size"]
         vocab_size = config["vocab_size"]
+        img_feature_channels = config["img_feature_channels"]
 
         # Load pretrained word embeddings
         word_embeddings = torch.Tensor(np.loadtxt(config["embeddings"]["path"]))
@@ -76,7 +77,8 @@ class CaptionDecoder(nn.Module):
             padding_idx=config["PAD_idx"]
         )
 
-        self.entry_mapping = nn.Linear(embedding_dim, d_model)
+        self.entry_mapping_words = nn.Linear(embedding_dim, d_model)
+        self.entry_mapping_img = nn.Linear(img_feature_channels, d_model)
         self.res_block = ResidualBlock(d_model)
 
         self.positional_encodings = PositionalEncodings(config["max_len"], d_model, dropout)
@@ -91,10 +93,14 @@ class CaptionDecoder(nn.Module):
 
     def forward(self, x, image_features, padd_mask=None):
         """Performs forward pass of the module."""
-        x = self.embedding_layer(x)
-        x = self.entry_mapping(x)
+        # Adapt the dimensionality of the features for image patches
+        image_features = self.entry_mapping_img(image_features)
 
+        # Entry mapping for word tokens
+        x = self.embedding_layer(x)
+        x = self.entry_mapping_words(x)
         x = self.positional_encodings(x)
+
         # Get output from the decoder
         x = x.permute(1, 0, 2)
         x = self.decoder(tgt=x, memory=image_features, tgt_key_padding_mask=padd_mask)
