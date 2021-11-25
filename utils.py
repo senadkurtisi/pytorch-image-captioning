@@ -80,6 +80,9 @@ def extract_embeddings(config):
 
     # Sanity check: we can't have duplicate embeddings
     assert not np.allclose(sos_embedding, eos_embedding), "SOS and EOS embeddings are too close!"
+    for emb_vec in vectors:
+        assert not np.allclose(sos_embedding, emb_vec), "SOS embedding is too close to other embedding!"
+        assert not np.allclose(eos_embedding, emb_vec), "EOS embedding is too close to other embedding!"
 
     vectors = np.vstack([pad_embedding, sos_embedding, eos_embedding, vectors])
     # Save extracted embeddings
