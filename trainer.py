@@ -71,6 +71,7 @@ def train(config, writer, device):
         for x_img, x_words, y, padding_mask, tgt_pos in train_loader:
             train_step += 1
 
+            # Move the used tensors to defined device
             x_img, x_words = x_img.to(device), x_words.to(device)
             y, tgt_pos = y.to(device), tgt_pos.to(device)
             padding_mask = padding_mask.to(device)

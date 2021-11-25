@@ -67,7 +67,7 @@ class CaptionDecoder(nn.Module):
 
         embedding_dim = config["embeddings"]["size"]
         vocab_size = config["vocab_size"]
-        img_feature_channels = config["image_specs"]["img_feature_channels"]
+        img_feature_channels = config["img_feature_channels"]
 
         # Load pretrained word embeddings
         word_embeddings = torch.Tensor(np.loadtxt(config["embeddings"]["path"]))
