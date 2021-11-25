@@ -47,3 +47,14 @@ def train(config, writer, device):
     # Instantiate the decoder
     decoder = CaptionDecoder(config)
     decoder = decoder.to(device)
+
+    # Load training configuration
+    train_config = config["train_config"]
+    learning_rate = train_config["learning_rate"]
+
+    # Prepare the model optimizer
+    optimizer = torch.optim.Adam(
+        decoder.parameters(),
+        lr=train_config["learning_rate"],
+        weight_decay=train_config["l2_penalty"]
+    )
