@@ -39,6 +39,9 @@ def train(config, writer, device):
     # Extract only the convolutional backbone of the model
     encoder = torch.nn.Sequential(*(list(encoder.children())[:-2]))
     encoder = encoder.to(device)
+    # Freeze encoder layers
+    for param in encoder.parameters():
+        param.requires_grad = False
     encoder.eval()
 
     # Instantiate the decoder
