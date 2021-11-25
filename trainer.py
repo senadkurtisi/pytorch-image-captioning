@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 import torchvision.models as models
 
@@ -59,6 +60,9 @@ def train(config, writer, device):
         weight_decay=train_config["l2_penalty"]
     )
 
+    # Loss function
+    loss_fcn = nn.CrossEntropyLoss()
+
     train_step = 0
     for epoch in range(train_config["num_of_epochs"]):
         print("Epoch:", epoch)
@@ -75,4 +79,19 @@ def train(config, writer, device):
             img_features = encoder(x_img)
             img_features = img_features.view(img_features.size(0), img_features.size(1), -1)
             img_features = img_features.permute(0, 2, 1)
+            img_features = img_features.detach()
 
+            # Get the output of the decoder
+            y_pred = decoder(x_words, img_features, padding_mask)
+            # Extract the prediction of the target token
+            tgt_pos = tgt_pos.view(-1)
+            y_pred = y_pred[torch.arange(y.size(0)), tgt_pos]
+
+            # Calculate the loss
+            y = y.view(-1)
+            loss = loss_fcn(y_pred, y)
+
+            # Update model weights
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(decoder.parameters(), train_config["gradient_clipping"])
+            optimizer.step()
