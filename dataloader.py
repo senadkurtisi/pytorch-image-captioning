@@ -155,9 +155,11 @@ class Flickr8KDataset(Dataset):
         label = self._word2idx[label]
         label = torch.Tensor([label]).long()
 
+        # Index from which to extract the model prediction
+        tgt_pos = torch.Tensor([sample_size])
+
         # Define the padding mask
         padding_mask = torch.ones([self._max_len, ])
         padding_mask[:sample_size] = 0.0
 
-        return image_tensor, input_tokens, label, padding_mask
-
+        return image_tensor, input_tokens, label, padding_mask, tgt_pos
