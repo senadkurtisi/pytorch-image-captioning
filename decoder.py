@@ -89,7 +89,7 @@ class CaptionDecoder(nn.Module):
         self.decoder = TransformerDecoder(transformer_decoder_layer, decoder_layers)
         self.classifier = nn.Linear(d_model, vocab_size)
 
-    def forward(self, x, image_features, target_pos, padd_mask=None):
+    def forward(self, x, image_features, padd_mask=None):
         """Performs forward pass of the module."""
         x = self.embedding_layer(x)
         x = self.entry_mapping(x)
@@ -100,7 +100,5 @@ class CaptionDecoder(nn.Module):
         x = self.decoder(tgt=x, memory=image_features, tgt_key_padding_mask=padd_mask)
         x = x.permute(1, 0, 2)
 
-        # Extract the prediction of relevant token
-        x = x[:, target_pos, :]
         x = self.classifier(x)
         return x
