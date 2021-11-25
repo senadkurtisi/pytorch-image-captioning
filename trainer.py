@@ -95,3 +95,6 @@ def train(config, writer, device):
             loss.backward()
             torch.nn.utils.clip_grad_norm_(decoder.parameters(), train_config["gradient_clipping"])
             optimizer.step()
+
+            writer.add_scalar("Train/Step-Loss", loss.item(), train_step)
+            writer.add_scalar("Train/Learning-Rate", learning_rate, train_step)
