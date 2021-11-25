@@ -95,6 +95,7 @@ class CaptionDecoder(nn.Module):
         """Performs forward pass of the module."""
         # Adapt the dimensionality of the features for image patches
         image_features = self.entry_mapping_img(image_features)
+        image_features = image_features.permute(1, 0, 2)
 
         # Entry mapping for word tokens
         x = self.embedding_layer(x)
