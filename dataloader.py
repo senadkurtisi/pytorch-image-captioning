@@ -1,6 +1,5 @@
 import os
 import json
-from collections import defaultdict
 
 import torch
 import torchvision.transforms as transforms
@@ -16,7 +15,7 @@ class Flickr8KDataset(Dataset):
     Each image has maximum 5 different captions.
     """
 
-    def __init__(self, config, path):
+    def __init__(self, config, path, training=True):
         """Initializes the module.
         
         Arguments:
@@ -26,6 +25,11 @@ class Flickr8KDataset(Dataset):
         with open(path, "r") as f:
             self._data = [line.replace("\n", "") for line in f.readlines()]
         
+        self._training = training
+
+        # Create inference data
+        self._inference_captions = self._group_captions(self._data)
+
         # Load the vocabulary mappings
         with open(config["word2idx_path"], "r", encoding="utf8") as f:
             self._word2idx = json.load(f)
@@ -33,6 +37,7 @@ class Flickr8KDataset(Dataset):
 
         self._start_idx = config["START_idx"]
         self._end_idx = config["END_idx"]
+        self._pad_idx = config["PAD_idx"]
         self._START_token = config["START_token"]
         self._END_token = config["END_token"]
         self._PAD_token = config["PAD_token"]
@@ -48,7 +53,7 @@ class Flickr8KDataset(Dataset):
         self._images = self._load_and_process_images(self._image_specs["image_dir"], self._image_names)
 
         # Create artificial samples
-        self._data = self._create_artificial_samples()
+        self._data = self._create_artificial_samples() if self._training else None
         self._dataset_size = len(self._data)
 
     def _construct_image_transform(self, image_size):
@@ -90,6 +95,29 @@ class Flickr8KDataset(Dataset):
         images_processed = {img_name: img_tensor for img_name, img_tensor in zip(image_names, image_tensors)}
         return images_processed
 
+    def _group_captions(self, data):
+        """Groups captions which correspond to the same image.
+
+        Main usage: Calculating BLEU score
+
+        Arguments:
+            data (list of str): Each element contains image name and corresponding caption
+        Returns:
+            grouped_captions (dict): Key - image name, Value - list of captions associated
+                with that picture
+        """
+        grouped_captions = {}
+
+        for line in data:
+            caption_data = line.split()
+            img_name, img_caption = caption_data[0].split("#")[0], caption_data[1:]
+            if img_name not in grouped_captions:
+                grouped_captions[img_name] = []
+
+            grouped_captions[img_name].append(" ".join(img_caption))
+
+        return grouped_captions
+
     def _create_artificial_samples(self):
         """Augments the dataset with artificial samples.
 
@@ -126,6 +154,33 @@ class Flickr8KDataset(Dataset):
                 augmented_data += [(image_name, new_input, label)]
 
         return augmented_data
+
+    def inference_batch(self, batch_size):
+        """Creates a mini batch dataloader for inference.
+
+        During inference we generate caption from scratch and in each iteration
+        we feed words generated previously by the model (i.e. no teacher forcing).
+        We only need input image as well as the target caption.
+        """
+        idx = 0
+        caption_data_items = list(self._inference_captions.items())
+        while idx < self._dataset_size:
+            caption_samples = caption_data_items[idx:idx + batch_size]
+            batch_imgs = []
+            batch_captions = []
+
+            # Increase index for the next batch
+            idx += batch_size
+
+            # Create a mini batch data
+            for image_name, captions in caption_samples:
+                batch_captions.append(captions)
+                batch_imgs.append(self._images[image_name])
+
+            # Batch image tensors
+            batch_imgs = torch.stack(batch_imgs, dim=0)
+
+            yield batch_imgs, batch_captions
 
     def __len__(self):
         return self._dataset_size
