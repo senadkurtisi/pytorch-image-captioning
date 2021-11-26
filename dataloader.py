@@ -162,10 +162,10 @@ class Flickr8KDataset(Dataset):
         we feed words generated previously by the model (i.e. no teacher forcing).
         We only need input image as well as the target caption.
         """
-        idx = 0
         caption_data_items = list(self._inference_captions.items())
-        while idx < self._dataset_size:
-            caption_samples = caption_data_items[idx:idx + batch_size]
+        num_batches = len(caption_data_items) // batch_size
+        for idx in range(num_batches):
+            caption_samples = caption_data_items[idx * batch_size: (idx + 1) * batch_size]
             batch_imgs = []
             batch_captions = []
 
