@@ -3,9 +3,51 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import torchvision.models as models
+from nltk.translate.bleu_score import corpus_bleu
 
 from dataloader import Flickr8KDataset
 from decoder import CaptionDecoder
+from decoding_utils import greedy_decoding
+
+
+def evaluate(subset, encoder, decoder, batch_size, max_len, device):
+    """Evaluates (BLEU score) caption generation model on a given subset.
+
+    Arguments:
+        subset (Flickr8KDataset): Train/Val/Test subset
+        encoder (nn.Module): CNN which generates image features
+        decoder (nn.Module): Transformer Decoder which generates captions for images
+        batch_size (int): Number of elements in each mini-batch
+        max_len (int): Maximum length of generated captions
+        device (torch.device): Device on which to port used tensors
+    Returns:
+        bleu (float): BLEU-4 score performance metric on the entire subset - corpus bleu
+    """
+    # Mapping from vocab index to string representation
+    idx2word = subset._idx2word
+    # Ids for special tokens
+    sos_id = subset._start_idx
+    eos_id = subset._end_idx
+    pad_id = subset._pad_idx
+
+    references_total = []
+    predictions_total = []
+
+    for x_img, y_caption in subset.inference_batch(batch_size):
+        x_img = x_img.to(device)
+        # Extract image features
+        img_features = encoder(x_img)
+        img_features = img_features.view(img_features.size(0), img_features.size(1), -1)
+        img_features = img_features.permute(0, 2, 1)
+        img_features = img_features.detach()
+
+        # Get the caption prediction for each image in the mini-batch
+        predictions = greedy_decoding(decoder, img_features, sos_id, eos_id, pad_id, idx2word, max_len, device)
+        references_total += y_caption
+        predictions_total += predictions
+
+    bleu = corpus_bleu(references_total, predictions_total)
+    return bleu
 
 
 def train(config, writer, device):
@@ -25,14 +67,10 @@ def train(config, writer, device):
         "shuffle": True,
         "drop_last": True
     }
-    valid_hyperparams = {
-        "batch_size": config["batch_size"]["validation"],
-        "shuffle": False,
-        "drop_last": True
-    }
 
     # Create dataloaders
-    train_set = Flickr8KDataset(config, config["split_save"]["train"])
+    train_set = Flickr8KDataset(config, config["split_save"]["train"], training=True)
+    valid_set = Flickr8KDataset(config, config["split_save"]["validation"], training=False)
     train_loader = DataLoader(train_set, **train_hyperparams)
 
     # Download pretrained CNN encoder
@@ -101,3 +139,14 @@ def train(config, writer, device):
 
             writer.add_scalar("Train/Step-Loss", loss.item(), train_step)
             writer.add_scalar("Train/Learning-Rate", learning_rate, train_step)
+
+        with torch.no_grad():
+            encoder.eval()
+            decoder.eval()
+
+            train_bleu = evaluate(train_set, encoder, decoder, config["batch_size"]["eval"], config["max_len"], device)
+            valid_bleu = evaluate(valid_set, encoder, decoder, config["batch_size"]["eval"], config["max_len"], device)
+            writer.add_scalar("Train/BLEU-4", train_bleu, epoch)
+            writer.add_scalar("Valid/BLEU-4", valid_bleu, epoch)
+
+            decoder.train()
