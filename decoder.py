@@ -57,6 +57,7 @@ class CaptionDecoder(nn.Module):
             padding_idx=config["PAD_idx"]
         )
 
+        # Modules used for mapping image features and word tokens to transformer embedding dimension
         self.entry_mapping_words = nn.Linear(embedding_dim, d_model)
         self.entry_mapping_img = nn.Linear(img_feature_channels, d_model)
 
@@ -71,7 +72,14 @@ class CaptionDecoder(nn.Module):
         self.classifier = nn.Linear(d_model, vocab_size)
 
     def forward(self, x, image_features, padd_mask=None):
-        """Performs forward pass of the module."""
+        """Performs forward pass of the module.
+
+        Arguments:
+            x: Input word tokens - previously generated words
+            image_features: Features acquired by encoder CNN for
+                image for which we generate caption
+            padd_mask: Mask for ignoring padding tokens in @x during attention        
+        """
         # Adapt the dimensionality of the features for image patches
         image_features = self.entry_mapping_img(image_features)
         image_features = image_features.permute(1, 0, 2)
