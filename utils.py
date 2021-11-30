@@ -24,7 +24,7 @@ def save_checkpoint(model, start_time, epoch):
     target_dir = os.path.join("checkpoints", str(start_time))
     os.makedirs(target_dir, exist_ok=True)
     # Save model weights
-    save_path = f"{target_dir}\\model_{epoch}.pth"
+    save_path = os.path.join(target_dir, f"model_{epoch}.pth")
     torch.save(model.state_dict(), save_path)
     print("Model saved to:", save_path)
 
