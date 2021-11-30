@@ -1,8 +1,21 @@
 import os
 import json
 import string
+import shutil
 
+import torch
 import numpy as np
+
+
+def log_gradient_norm(model, writer, step, mode, norm_type=2):
+    """Writes model param's gradients norm to tensorboard"""
+    total_norm = 0
+    for p in model.parameters():
+        if p.requires_grad:
+            param_norm = p.grad.data.norm(norm_type)
+            total_norm += param_norm.item() ** 2
+    total_norm = total_norm ** (1. / 2)
+    writer.add_scalar(f"Gradient/{mode}", total_norm, step)
 
 
 def save_captions(image2caption, subset_imgs, save_path):
