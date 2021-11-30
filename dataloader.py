@@ -54,7 +54,7 @@ class Flickr8KDataset(Dataset):
 
         # Create artificial samples
         self._data = self._create_artificial_samples() if self._training else None
-        self._dataset_size = len(self._data)
+        self._dataset_size = len(self._data) if self._training else 0
 
     def _construct_image_transform(self, image_size):
         """Constructs the image preprocessing transform object.
