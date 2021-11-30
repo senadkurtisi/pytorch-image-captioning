@@ -4,26 +4,6 @@ import torch.nn as nn
 from torch.nn import TransformerDecoderLayer, TransformerDecoder
 
 
-class ResidualBlock(nn.Module):
-    """Represents 1D version of the residual block: https://arxiv.org/abs/1512.03385"""
-
-    def __init__(self, input_dim):
-        """Initializes the module."""
-        super(ResidualBlock, self).__init__()
-        self.block = nn.Sequential(
-            nn.Linear(input_dim, input_dim),
-            nn.LeakyReLU(),
-            nn.Linear(input_dim, input_dim),
-        )
-
-    def forward(self, x):
-        """Performs forward pass of the module."""
-        skip_connection = x
-        x = self.block(x)
-        x = skip_connection + x
-        return x
-
-
 class PositionalEncodings(nn.Module):
     """Attention is All You Need positional encoding layer"""
 
@@ -79,7 +59,6 @@ class CaptionDecoder(nn.Module):
 
         self.entry_mapping_words = nn.Linear(embedding_dim, d_model)
         self.entry_mapping_img = nn.Linear(img_feature_channels, d_model)
-        self.res_block = ResidualBlock(d_model)
 
         self.positional_encodings = PositionalEncodings(config["max_len"], d_model, dropout)
         transformer_decoder_layer = TransformerDecoderLayer(
