@@ -8,8 +8,8 @@ import torchvision.models as models
 from nltk.translate.bleu_score import corpus_bleu
 
 from dataloader import Flickr8KDataset
-from decoding_utils import greedy_decoding
 from decoder import CaptionDecoder
+from decoding_utils import greedy_decoding
 from utils import save_checkpoint, log_gradient_norm
 
 
@@ -26,7 +26,8 @@ def evaluate(subset, encoder, decoder, batch_size, max_len, device, bleu_weights
         bleu_weights (list of lists): Each element represents weights used for evaluating
             BLEU-n score where n should be the length of the longest element in the list
     Returns:
-        bleu (float): BLEU-4 score performance metric on the entire subset - corpus bleu
+        bleu (list of floats): BLEU-1 to BLEU-4 scores as a performance metric on the entire subset.
+            These metrics are evaluated on a corpus level.
     """
     # Mapping from vocab index to string representation
     idx2word = subset._idx2word
@@ -182,3 +183,4 @@ def train(config, writer, device):
             decoder.train()
         
         save_checkpoint(decoder, start_time, epoch)
+        print()
