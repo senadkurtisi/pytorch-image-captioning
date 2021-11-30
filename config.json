@@ -43,7 +43,7 @@
     "seed": 26,
 
     "batch_size": {
-        "train": 32,
+        "train": 128,
         "eval": 128
     },
 
@@ -54,11 +54,9 @@
     "dropout": 0.5,
 
     "train_config": {
-        "num_of_epochs": 50,
-        "learning_rate": 0.0001,
+        "num_of_epochs": 10,
         "warmup_steps": 3000,
-        "l2_penalty": 0.4,
-        "gradient_clipping": 0.5
+        "l2_penalty": 0.5
     },
 
     "bleu_weights": {
