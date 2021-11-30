@@ -1,0 +1,71 @@
+{
+    "dataset_dir": "dataset",
+    "glove_dir": "glove_embeddings",
+    "dataset_path": ".\\dataset\\flick8k\\omg.txt",
+
+    "split_images": {
+        "train": ".\\dataset\\flick8k\\Flickr_8k.trainImages.txt",
+        "validation": ".\\dataset\\flick8k\\Flickr_8k.devImages.txt",
+        "test": ".\\dataset\\flick8k\\Flickr_8k.testImages.txt"
+    },
+    
+    "split_save": {
+        "train": ".\\dataset\\flick8k\\train.txt",
+        "validation": ".\\dataset\\flick8k\\validation.txt",
+        "test": ".\\dataset\\flick8k\\test.txt"
+    },
+
+    "word2idx_path": ".\\dataset\\word2idx.json",
+    "embeddings": {
+        "path": ".\\dataset\\embeddings.txt",
+        "size": 100
+    },
+
+    "image_specs": {
+        "image_dir": "dataset\\flick8k\\Images",
+        "image_size": 224,
+        "img_feature_channels": 2048
+    },
+
+    "vocab_size": 8766,
+
+    "PAD_token": "<pad>",
+    "PAD_idx": 0,
+
+    "START_idx": 1,
+    "START_token": "<start>",
+    "END_idx": 2,
+    "END_token": "<end>",
+
+    "max_len": 64,
+
+    "use_gpu": true,
+    "seed": 26,
+
+    "batch_size": {
+        "train": 32,
+        "eval": 128
+    },
+
+    "decoder_layers": 4,
+    "d_model": 256,
+    "ff_dim": 512,
+    "attention_heads": 8,
+    "dropout": 0.5,
+
+    "train_config": {
+        "num_of_epochs": 50,
+        "learning_rate": 0.0001,
+        "warmup_steps": 3000,
+        "l2_penalty": 0.4,
+        "gradient_clipping": 0.5
+    },
+
+    "bleu_weights": {
+        "bleu-1": [1.0],
+        "bleu-2": [0.5, 0.5],
+        "bleu-3": [0.333, 0.333, 0.333],
+        "bleu-4": [0.25, 0.25, 0.25, 0.25]
+    }
+
+}
