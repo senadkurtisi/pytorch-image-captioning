@@ -18,6 +18,23 @@ def log_gradient_norm(model, writer, step, mode, norm_type=2):
     writer.add_scalar(f"Gradient/{mode}", total_norm, step)
 
 
+def save_checkpoint(model, start_time, epoch):
+    """Saves specified model checkpoint."""
+    # target_dir = f"checkpoints\\{start_time}"
+    target_dir = os.path.join("checkpoints", str(start_time))
+    os.makedirs(target_dir, exist_ok=True)
+    # Save model weights
+    save_path = f"{target_dir}\\model_{epoch}.pth"
+    torch.save(model.state_dict(), save_path)
+    print("Model saved to:", save_path)
+
+    # Save model configuration
+    if not os.path.exists(f"{target_dir}\\config.json"):
+        shutil.copy("config.json", os.path.join(target_dir, "config.json"))
+        shutil.copy("decoder.py", os.path.join(target_dir, "classifier.py"))
+        shutil.copy("utils.py", os.path.join(target_dir, "utils.py"))
+
+
 def save_captions(image2caption, subset_imgs, save_path):
     """Saves captions for images which belong to subset to a file.
 
