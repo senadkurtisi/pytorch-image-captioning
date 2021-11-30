@@ -29,7 +29,7 @@ def save_checkpoint(model, start_time, epoch):
     print("Model saved to:", save_path)
 
     # Save model configuration
-    if not os.path.exists(f"{target_dir}\\config.json"):
+    if not os.path.exists(os.path.join(target_dir, "config.json")):
         shutil.copy("config.json", os.path.join(target_dir, "config.json"))
         shutil.copy("decoder.py", os.path.join(target_dir, "classifier.py"))
         shutil.copy("utils.py", os.path.join(target_dir, "utils.py"))
