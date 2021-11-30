@@ -9,8 +9,8 @@ from nltk.translate.bleu_score import corpus_bleu
 
 from dataloader import Flickr8KDataset
 from decoder import CaptionDecoder
-from decoding_utils import greedy_decoding
-from utils import save_checkpoint, log_gradient_norm
+from utils.decoding_utils import greedy_decoding
+from utils.utils import save_checkpoint, log_gradient_norm
 
 
 def evaluate(subset, encoder, decoder, batch_size, max_len, device, bleu_weights):

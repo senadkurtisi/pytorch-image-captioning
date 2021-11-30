@@ -1,6 +1,6 @@
 import json
 
-from utils import clean_captions, create_vocab, extract_embeddings, load_captions, split_dataset
+from utils.utils import clean_captions, create_vocab, extract_embeddings, load_captions, split_dataset
 
 
 if __name__ == "__main__":
@@ -25,4 +25,3 @@ if __name__ == "__main__":
     split_images_paths = list(config["split_images"].values())
     split_save_paths = list(config["split_save"].values())
     split_dataset(image2caption, split_images_paths, split_save_paths)
-
