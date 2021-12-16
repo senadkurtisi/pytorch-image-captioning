@@ -1,8 +1,39 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn import TransformerDecoderLayer, TransformerDecoder
 
+
+class ResidualBlock(nn.Module):
+    """Represents 1D version of the residual block: https://arxiv.org/abs/1512.03385"""
+
+    def __init__(self, input_dim):
+        """Initializes the module."""
+        super(ResidualBlock, self).__init__()
+        self.block = nn.Sequential(
+            nn.Linear(input_dim, input_dim),
+            nn.LeakyReLU(),
+            nn.Linear(input_dim, input_dim),
+        )
+
+    def forward(self, x):
+        """Performs forward pass of the module."""
+        skip_connection = x
+        x = self.block(x)
+        x = skip_connection + x
+        return x
+
+
+class Normalize(nn.Module):
+    def __init__(self, eps=1e-5):
+        super(Normalize, self).__init__()
+        self.register_buffer("eps", torch.Tensor([eps]))
+
+    def forward(self, x, dim=-1):
+        norm = x.norm(2, dim=dim).unsqueeze(-1)
+        x = self.eps * (x / norm)
+        return x
 
 class PositionalEncodings(nn.Module):
     """Attention is All You Need positional encoding layer"""
@@ -51,15 +82,17 @@ class CaptionDecoder(nn.Module):
 
         # Load pretrained word embeddings
         word_embeddings = torch.Tensor(np.loadtxt(config["embeddings"]["path"]))
+
         self.embedding_layer = nn.Embedding.from_pretrained(
             word_embeddings,
             freeze=True,
             padding_idx=config["PAD_idx"]
         )
 
-        # Modules used for mapping image features and word tokens to transformer embedding dimension
         self.entry_mapping_words = nn.Linear(embedding_dim, d_model)
         self.entry_mapping_img = nn.Linear(img_feature_channels, d_model)
+
+        self.res_block = ResidualBlock(d_model)
 
         self.positional_encodings = PositionalEncodings(config["max_len"], d_model, dropout)
         transformer_decoder_layer = TransformerDecoderLayer(
@@ -71,27 +104,31 @@ class CaptionDecoder(nn.Module):
         self.decoder = TransformerDecoder(transformer_decoder_layer, decoder_layers)
         self.classifier = nn.Linear(d_model, vocab_size)
 
-    def forward(self, x, image_features, padd_mask=None):
-        """Performs forward pass of the module.
-
-        Arguments:
-            x: Input word tokens - previously generated words
-            image_features: Features acquired by encoder CNN for
-                image for which we generate caption
-            padd_mask: Mask for ignoring padding tokens in @x during attention        
-        """
+    def forward(self, x, image_features, tgt_padding_mask=None, tgt_mask=None):
+        """Performs forward pass of the module."""
         # Adapt the dimensionality of the features for image patches
         image_features = self.entry_mapping_img(image_features)
         image_features = image_features.permute(1, 0, 2)
+        image_features = F.leaky_relu(image_features)
 
         # Entry mapping for word tokens
         x = self.embedding_layer(x)
         x = self.entry_mapping_words(x)
+        x = F.leaky_relu(x)
+
+        x = self.res_block(x)
+        x = F.leaky_relu(x)
+
         x = self.positional_encodings(x)
 
         # Get output from the decoder
         x = x.permute(1, 0, 2)
-        x = self.decoder(tgt=x, memory=image_features, tgt_key_padding_mask=padd_mask)
+        x = self.decoder(
+            tgt=x,
+            memory=image_features,
+            tgt_key_padding_mask=tgt_padding_mask,
+            tgt_mask=tgt_mask
+        )
         x = x.permute(1, 0, 2)
 
         x = self.classifier(x)
