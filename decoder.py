@@ -35,6 +35,7 @@ class Normalize(nn.Module):
         x = self.eps * (x / norm)
         return x
 
+
 class PositionalEncodings(nn.Module):
     """Attention is All You Need positional encoding layer"""
 
