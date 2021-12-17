@@ -1,5 +1,6 @@
 import os
 import json
+import random
 
 import torch
 import torchvision.transforms as transforms
@@ -24,7 +25,7 @@ class Flickr8KDataset(Dataset):
         """
         with open(path, "r") as f:
             self._data = [line.replace("\n", "") for line in f.readlines()]
-        
+
         self._training = training
 
         # Create inference data
@@ -35,25 +36,30 @@ class Flickr8KDataset(Dataset):
             self._word2idx = json.load(f)
         self._idx2word = {str(idx): word for word, idx in self._word2idx.items()}
 
+        # Auxiliary token indices
         self._start_idx = config["START_idx"]
         self._end_idx = config["END_idx"]
         self._pad_idx = config["PAD_idx"]
+        self._UNK_idx = config["UNK_idx"]
+        # Auxiliary token marks
         self._START_token = config["START_token"]
         self._END_token = config["END_token"]
         self._PAD_token = config["PAD_token"]
+        self._UNK_token = config["UNK_token"]
 
         self._max_len = config["max_len"]
 
         # Transformation to apply to each image
         self._image_specs = config["image_specs"]
         self._image_transform = self._construct_image_transform(self._image_specs["image_size"])
-        # All images that appear in the dataset
-        self._image_names = list(set([line.split()[0].split("#")[0] for line in self._data]))
-        # Preprocessed images
-        self._images = self._load_and_process_images(self._image_specs["image_dir"], self._image_names)
 
-        # Create artificial samples
-        self._data = self._create_artificial_samples() if self._training else None
+        # Create paths to image files belonging to the subset
+        subset = "train" if training else "validation"
+        self.image_dir = self._image_specs["image_dir"][subset]
+
+        # Create (X, Y) pairs
+        self._data = self._create_input_label_mappings(self._data)
+
         self._dataset_size = len(self._data) if self._training else 0
 
     def _construct_image_transform(self, image_size):
@@ -112,48 +118,44 @@ class Flickr8KDataset(Dataset):
             caption_data = line.split()
             img_name, img_caption = caption_data[0].split("#")[0], caption_data[1:]
             if img_name not in grouped_captions:
+                # We came across the first caption for this particular image
                 grouped_captions[img_name] = []
 
             grouped_captions[img_name].append(" ".join(img_caption))
 
         return grouped_captions
 
-    def _create_artificial_samples(self):
-        """Augments the dataset with artificial samples.
+    def _create_input_label_mappings(self, data):
+        """Creates (image, description) pairs.
 
-        Example:
-            - original sample: image_0 Two dogs playing outside
-            - Generated samples:
-                1. image_0 Two
-                2. image_0 Two dogs
-                3. image_0 Two dogs playing
-                4. image_0 Two dogs playing outside
-
+        Arguments:
+            data (list of str): Each element consists out of image file name and appropriate caption
+                Elements are organized in the following format: 'image_name[SPACE]caption'
         Returns:
-            augmented_data (list): Augmented dataset
-                Each element is a tuple (image_name, input_words, label)
-                - input_words (list of str): Words predicted until now
-                - label (str): Correct prediction for the next word
+            processed_data (list of tuples): Each tuple is organized in following format: (image_name, caption)
         """
-        augmented_data = []
-        for line in self._data:
-            line_split = line.split()
-            image_name, caption = line_split[0], line_split[1:]
-            # Clean image name entry
-            image_name = image_name.split("#")[0]
+        processed_data = []
+        for line in data:
+            tokens = line.split()
+            # Separate image name from the label tokens
+            img_name, caption_words = tokens[0].split("#")[0], tokens[1:]
+            # Construct (X, Y) pair
+            pair = (img_name, caption_words)
+            processed_data.append(pair)
 
-            # Add tokens for start and end of the sequence
-            # Start token is necessary for predicting the first word of the caption
-            caption_words = [self._START_token] + caption + [self._END_token]
-            num_words = len(caption_words)
-            for pos in range(1, num_words):
-                # Input for the neural network: Words predicted until now
-                new_input = caption_words[:pos]
-                # Correct prediction for the next word
-                label = caption_words[pos]
-                augmented_data += [(image_name, new_input, label)]
+        return processed_data
 
-        return augmented_data
+    def _load_and_prepare_image(self, image_name):
+        """Performs image preprocessing.
+
+        Images need to be prepared for the ResNet encoder.
+        Arguments:
+            image_name (str): Name of the image file located in the subset directory
+        """
+        image_path = os.path.join(self.image_dir, image_name)
+        img_pil = Image.open(image_path).convert("RGB")
+        image_tensor = self._image_transform(img_pil)
+        return image_tensor
 
     def inference_batch(self, batch_size):
         """Creates a mini batch dataloader for inference.
@@ -163,6 +165,8 @@ class Flickr8KDataset(Dataset):
         We only need input image as well as the target caption.
         """
         caption_data_items = list(self._inference_captions.items())
+        random.shuffle(caption_data_items)
+
         num_batches = len(caption_data_items) // batch_size
         for idx in range(num_batches):
             caption_samples = caption_data_items[idx * batch_size: (idx + 1) * batch_size]
@@ -175,10 +179,12 @@ class Flickr8KDataset(Dataset):
             # Create a mini batch data
             for image_name, captions in caption_samples:
                 batch_captions.append(captions)
-                batch_imgs.append(self._images[image_name])
+                batch_imgs.append(self._load_and_prepare_image(image_name))
 
             # Batch image tensors
             batch_imgs = torch.stack(batch_imgs, dim=0)
+            if batch_size == 1:
+                batch_imgs = batch_imgs.unsqueeze(0)
 
             yield batch_imgs, batch_captions
 
@@ -187,34 +193,40 @@ class Flickr8KDataset(Dataset):
 
     def __getitem__(self, index):
         # Extract the caption data
-        image_id, input_tokens, label = self._data[index]
+        image_id, tokens = self._data[index]
 
-        # Extract image tensor
-        image_tensor = self._images[image_id]
+        # Load and preprocess image
+        image_tensor = self._load_and_prepare_image(image_id)
+
+        # Pad the token and label sequences
+        tokens = tokens[:self._max_len]
+
+        tokens = [token.strip().lower() for token in tokens]
+        tokens = [self._START_token] + tokens + [self._END_token]
+        # Extract input and target output
+        input_tokens = tokens[:-1].copy()
+        tgt_tokens = tokens[1:].copy()
 
         # Number of words in the input token
         sample_size = len(input_tokens)
-
-        # Pad the token and label sequences
-        input_tokens = input_tokens[:self._max_len]
         padding_size = self._max_len - sample_size
+
         if padding_size > 0:
-            input_tokens += [self._PAD_token for _ in range(padding_size)]
+            padding_vec = [self._PAD_token for _ in range(padding_size)]
+            input_tokens += padding_vec.copy()
+            tgt_tokens += padding_vec.copy()
 
         # Apply the vocabulary mapping to the input tokens
-        input_tokens = [token.strip().lower() for token in input_tokens]
-        input_tokens = [self._word2idx[token] for token in input_tokens]
-        input_tokens = torch.Tensor(input_tokens).long()
+        input_tokens = [self._word2idx.get(token, self._UNK_idx) for token in input_tokens]
+        tgt_tokens = [self._word2idx.get(token, self._UNK_idx) for token in tgt_tokens]
 
-        # Next word label
-        label = self._word2idx[label]
-        label = torch.Tensor([label]).long()
+        input_tokens = torch.Tensor(input_tokens).long()
+        tgt_tokens = torch.Tensor(tgt_tokens).long()
 
         # Index from which to extract the model prediction
-        tgt_pos = torch.Tensor([sample_size]).long()
+        # Define the padding masks
+        tgt_padding_mask = torch.ones([self._max_len, ])
+        tgt_padding_mask[:sample_size] = 0.0
+        tgt_padding_mask = tgt_padding_mask.bool()
 
-        # Define the padding mask
-        padding_mask = torch.ones([self._max_len, ])
-        padding_mask[:sample_size] = 0.0
-
-        return image_tensor, input_tokens, label, padding_mask, tgt_pos
+        return image_tensor, input_tokens, tgt_tokens, tgt_padding_mask
