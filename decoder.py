@@ -71,11 +71,12 @@ class CaptionDecoder(nn.Module):
     def __init__(self, config):
         """Initializes the model."""
         super(CaptionDecoder, self).__init__()
-        decoder_layers = config["decoder_layers"]
-        attention_heads = config["attention_heads"]
-        d_model = config["d_model"]
-        ff_dim = config["ff_dim"]
-        dropout = config["dropout"]
+        model_config = config["model_configuration"]
+        decoder_layers = model_config["decoder_layers"]
+        attention_heads = model_config["attention_heads"]
+        d_model = model_config["d_model"]
+        ff_dim = model_config["ff_dim"]
+        dropout = model_config["dropout"]
 
         embedding_dim = config["embeddings"]["size"]
         vocab_size = config["vocab_size"]
@@ -83,7 +84,6 @@ class CaptionDecoder(nn.Module):
 
         # Load pretrained word embeddings
         word_embeddings = torch.Tensor(np.loadtxt(config["embeddings"]["path"]))
-
         self.embedding_layer = nn.Embedding.from_pretrained(
             word_embeddings,
             freeze=True,
