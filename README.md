@@ -56,8 +56,7 @@ In the previous figure we can notice few things.
 #### Masking input tokens
 As indicated in previously the problem lies in the fact that the decoder can attend to the word that it's trying to predict since entire input sequence is fed at once. In order to solve that problem we need to mask out all of the tokens after the one which we are trying to further encode. This process is illustrated below.
 
-<br>
-<br>
+
 <p align="center">
   <img src="imgs\dataset\triu.png" height=453.6 width=445.6/>
 </p>
@@ -99,7 +98,9 @@ Model performance was evaluated using [BLEU score](https://en.wikipedia.org/wiki
 
 Below we can see the model perfomance on all of the subsets. We can notice that the model has high generalization performance.<br><br>
 
-<img src="imgs\bleu_4.jpg" width = 389px height = 278px > <br>
+<p align="center">
+  <img src="imgs\bleu_4.jpg" width = 389px height = 278px> <br>
+</p>
 
 Based on quantitative results we can see that the BLEU-4 score is not extremely high. This model was trained on a local GPU: GTX 1650Ti so there were limitations in the hardware compute power. If we train this model for long enough we could be able to achieve better results. Besides that, using beam search would also improve results, but beam search can add a significant computational overhead.
 
