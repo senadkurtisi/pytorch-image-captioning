@@ -13,7 +13,7 @@ Table of Contents:
     * [Encoding images](#encoding-images)
 3. [Architecture](#architecture)
 4. [Results](#results)
-    * [Model Performance][#model-performance]
+    * [Model Performance](#model-performance)
     * [Caption Examples](#caption-examples)
     * [Failure Cases](#failure-cases)
 5. [Instructions](#setup-and-instructions)
@@ -40,7 +40,7 @@ Below we can see number of captions based on the original dataset split.
 Since **Transformer Decoder** was used for the decoding part we need to take special care when it comes to feeding data into the model. Transformer blocks ([Vaswani et al.](https://arxiv.org/abs/1706.03762)) rely on leveraging attention layers which try to determine how much attention we should pay on other tokens in a sequence, while trying to encode the current one.
 
 <p id="problems">
-This approach is extremely powerful but it can lead to some problems. As illustrated below, the model receives each token up until the final one as input and uses all tokens except the first one as target labels. In different words: *We wish to predict the next word of a caption given the previously generated words*.
+This approach is extremely powerful but it can lead to some problems. As illustrated below, the model receives each token up until the final one as input and uses all tokens except the first one as target labels. In different words: <i>We wish to predict the next word of a caption given the previously generated words</i>.
 </p>
 
 <br>
@@ -51,12 +51,12 @@ This approach is extremely powerful but it can lead to some problems. As illustr
 In the previous figure we can notice few things.
 * Each sequence has ```<start>``` and ```<end>``` tokens appended to the beginning and end of a caption. These tokens are crucial for any text generation problem.
   * ```<start>``` token serves as a initial state when we need to generate the first word of a caption
-  * ```<end>``` token is important because it serves as a signal to the decoder that the caption has ended. Usage of this token prevents the decoder from trying to learng (and generate) infinite captions.
+  * ```<end>``` token is important because it serves as a signal to the decoder that the caption has ended. Usage of this token prevents the decoder from trying to learn (and generate) infinite captions.
 
 #### Masking input tokens
-<br>
 As indicated in previously the problem lies in the fact that the decoder can attend to the word that it's trying to predict since entire input sequence is fed at once. In order to solve that problem we need to mask out all of the tokens after the one which we are trying to further encode. This process is illustrated below.
 
+<br>
 <br>
 <p align="center">
   <img src="imgs\dataset\triu.png" height=453.6 width=445.6/>
@@ -87,7 +87,7 @@ Model architecture consists out of **encoder** and **decoder**. <br>
     * Previously generated words. These are fed as tokens in a sequence manner
     * Image features. Downsampled image is flattened in such way that each pixel represents a single input token from a sequence (analogous to the word tokens). Each pixel is described by N feature channels
 
-* As we can see in the previous image there two attention blocks in each decoder block.
+* As we can see in the previous image there are two attention layers in each decoder block.
   1. First, we try to further encode each token in the input sequence by using self-attention mechanism, which calculates how much attention we should pay to other words in the input sequence. ***Of course, here we need to take special care to make sure we mask tokens to which we are not allowed to attend as described [here](#masking-input-tokens)***
   2. Second decoder attention layers tries to match input word tokens to input image features. By ```input word tokens``` we mean the output of the first "masked self-attention" layer
 
