@@ -43,7 +43,7 @@ Since **Transformer Decoder** was used for the decoding part we need to take spe
 This approach is extremely powerful but it can lead to some problems. As illustrated below, the model receives each token up until the final one as input and uses all tokens except the first one as target labels. In different words: <i>We wish to predict the next word of a caption given the previously generated words</i>.
 </p>
 
-<br>
+
 <p align="center">
   <img src="imgs\dataset\input_sample.PNG" width = 643.5px height = 213px/>
 </p>
