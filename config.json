@@ -22,41 +22,54 @@
     },
 
     "image_specs": {
-        "image_dir": "dataset\\flick8k\\Images",
-        "image_size": 224,
-        "img_feature_channels": 2048
+        "image_dir": {
+            "train": ".\\dataset\\flick8k\\Images",
+            "validation": ".\\dataset\\flick8k\\Images",
+            "test": ".\\dataset\\flick8k\\Images"
+        },
+        "img_feature_channels": 2048,
+        "image_size": 256
     },
 
-    "vocab_size": 8766,
+    "vocab_size": 7890,
 
     "PAD_token": "<pad>",
     "PAD_idx": 0,
 
     "START_idx": 1,
     "START_token": "<start>",
+
     "END_idx": 2,
     "END_token": "<end>",
+
+    "UNK_idx": 3,
+    "UNK_token": "<unk>",
 
     "max_len": 64,
 
     "use_gpu": true,
-    "seed": 26,
+    "seed": 2021,
 
     "batch_size": {
-        "train": 128,
-        "eval": 128
+        "train": 32,
+        "eval": 32
     },
 
-    "decoder_layers": 4,
-    "d_model": 256,
-    "ff_dim": 512,
-    "attention_heads": 8,
-    "dropout": 0.5,
+    "model_configuration": {
+        "decoder_layers": 6,
+        "d_model": 512,
+        "ff_dim": 1024,
+        "attention_heads": 16,
+        "dropout": 0.5
+    },
 
     "train_config": {
-        "num_of_epochs": 10,
-        "warmup_steps": 3000,
-        "l2_penalty": 0.5
+        "num_of_epochs": 100,
+        "warmup_steps": 2811,
+        "l2_penalty": 0.5,
+        "learning_rate": 0.000008,
+        "gradient_clipping": 2.0,
+        "eval_period": 3
     },
 
     "bleu_weights": {
@@ -64,6 +77,10 @@
         "bleu-2": [0.5, 0.5],
         "bleu-3": [0.333, 0.333, 0.333],
         "bleu-4": [0.25, 0.25, 0.25, 0.25]
-    }
+    },
 
+    "checkpoint": {
+        "load": false,
+        "checkpoint_path": "."
+    }
 }
