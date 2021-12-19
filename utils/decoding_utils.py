@@ -65,6 +65,8 @@ def greedy_decoding(model, img_features_batched, sos_id, eos_id, pad_id, idx2wor
         if not is_decoded[batch_idx]:
             generated_captions[batch_idx].append(idx2word[str(eos_id)])
 
-    # Form the caption strings
-    generated_captions = [" ".join(caption) for caption in generated_captions]
+    # Clean the EOS symbol
+    for caption in generated_captions:
+        caption.remove("<end>")
+
     return generated_captions
