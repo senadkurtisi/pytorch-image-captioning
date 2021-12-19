@@ -81,7 +81,7 @@ Model architecture consists out of **encoder** and **decoder**. <br>
 </p>
 
 **Model forward pass:**
-* The image is passed through the encoder which downsamples the image and generates some descriptive features. We remove the last two layers from the **ResNet50** since we wish to only extract feature maps, and discard the features which were used to perform classification on the [ImageNet](https://image-net.org/). These feature maps are reshaped as previously described [here](#encoding-image). 
+* The image is passed through the encoder which downsamples the image and generates some descriptive features. We remove the last two layers from the **ResNet50** since we wish to only extract feature maps, and discard the features which were used to perform classification on the [ImageNet](https://image-net.org/). These feature maps are reshaped as previously described [here](#encoding-images). 
 * Decoder takes in two inputs:
     * Previously generated words. These are fed as tokens in a sequence manner
     * Image features. Downsampled image is flattened in such way that each pixel represents a single input token from a sequence (analogous to the word tokens). Each pixel is described by N feature channels
