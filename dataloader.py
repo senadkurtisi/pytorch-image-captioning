@@ -121,7 +121,7 @@ class Flickr8KDataset(Dataset):
                 # We came across the first caption for this particular image
                 grouped_captions[img_name] = []
 
-            grouped_captions[img_name].append(" ".join(img_caption))
+            grouped_captions[img_name].append(img_caption)
 
         return grouped_captions
 
@@ -165,7 +165,7 @@ class Flickr8KDataset(Dataset):
         We only need input image as well as the target caption.
         """
         caption_data_items = list(self._inference_captions.items())
-        random.shuffle(caption_data_items)
+        # random.shuffle(caption_data_items)
 
         num_batches = len(caption_data_items) // batch_size
         for idx in range(num_batches):
