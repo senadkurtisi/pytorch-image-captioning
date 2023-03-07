@@ -1,7 +1,7 @@
 {
     "dataset_dir": "dataset",
     "glove_dir": "glove_embeddings",
-    "dataset_path": ".\\dataset\\flick8k\\omg.txt",
+    "dataset_path": ".\\dataset\\flick8k\\flickr_data.txt",
 
     "split_images": {
         "train": ".\\dataset\\flick8k\\Flickr_8k.trainImages.txt",
